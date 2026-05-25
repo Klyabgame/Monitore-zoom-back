@@ -18,6 +18,7 @@ public class CorsConfig {
         CorsConfiguration corsConfig = new CorsConfiguration();
         // Allows Angular frontend development server origin
         corsConfig.addAllowedOrigin("http://localhost:4200");
+        corsConfig.addAllowedOrigin("https://zoom.cefoesp.org.pe");
         corsConfig.addAllowedMethod("*");
         corsConfig.addAllowedHeader("*");
         corsConfig.setAllowCredentials(true);
