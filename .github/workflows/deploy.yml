@@ -1,0 +1,52 @@
+name: Deploy Backend WebFlux
+
+on:
+  push:
+    branches:
+      - main  # Se dispara automáticamente cuando haces push a la rama main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descargar el código del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Configurar Java 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 3. Dar permisos de ejecución al wrapper de Maven y compilar
+      - name: Build with Maven
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+
+      # 4. Subir el Fat JAR al VPS por SSH
+      - name: Copy JAR to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "target/zoomaccess-0.0.1-SNAPSHOT.jar"
+          target: "/var/www/zoombackend.cefoesp.org.pe"
+          strip_components: 1
+
+      # 5. Reiniciar el servicio en el VPS para aplicar los cambios
+      - name: Restart Backend Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/zoombackend.cefoesp.org.pe
+            mv zoomaccess-0.0.1-SNAPSHOT.jar app.jar
+            sudo systemctl restart zoombackend.service
